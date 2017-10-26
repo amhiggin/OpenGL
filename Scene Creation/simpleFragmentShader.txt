@@ -1,0 +1,52 @@
+#version 330
+
+in vec3 position_eye, normal_eye;
+in vec2 texture_coord;
+uniform sampler2D tex;
+uniform mat4 view;
+uniform mat4 model;
+
+// fixed point light properties
+vec3 light_position_world = vec3 (45.0,10.0,45.0);
+vec3 Ls = vec3 (1.0, 1.0, 1.0); 
+vec3 Ld = vec3 (0.8, 0.8, 0.8); 
+vec3 La = vec3 (0.8, 0.0, 0.8); 
+
+// surface reflectance
+vec3 Ks = vec3 (0.4, 0.4, 0.4); 
+vec3 Kd = vec3 (0.5, 0.5, 0.5); 
+vec3 Ka = vec3 (0.3, 0.3, 0.3); 
+float specular_exponent = 0.5; 
+
+out vec4 fragment_colour;
+
+void main () {
+	
+	vec3 normal = vec3 (view * model * vec4 (normal_eye, 0.0));
+	
+	// ambient intensity
+	vec3 Ia = La * Ka;
+	
+	vec4 texel = texture(tex, 50 * texture_coord);
+	
+	// diffuse intensity
+	vec3 light_position_eye = vec3 (view * vec4 (light_position_world, 1.0));
+	vec3 distance_to_light_eye = light_position_eye - position_eye;
+	vec3 direction_to_light_eye = normalize (distance_to_light_eye);
+	float dot_prod = dot (direction_to_light_eye, normal);
+	dot_prod = max (dot_prod, 0.0);
+	vec3 Id = Ld * Kd * dot_prod; 
+	
+	// specular intensity
+	vec3 reflection_eye = reflect (-direction_to_light_eye, normal);
+	vec3 surface_to_viewer_eye = normalize (-position_eye);
+	float dot_prod_specular = dot (reflection_eye, surface_to_viewer_eye);
+	dot_prod_specular = max (dot_prod_specular, 0.0);
+	float specular_factor = pow (dot_prod_specular, specular_exponent);
+	vec3 Is = Ls * Ks * specular_factor; 
+	
+	// final colour
+	vec4 frag_colour = vec4 (Is + Id + Ia, 1.0);
+	fragment_colour = frag_colour * texel;
+	
+}
